@@ -4,3 +4,6 @@
  * of A and the entire matrix B to the slave processes.
  */
 
+#include <stdio.h>
+#include <mpi.h>
+
