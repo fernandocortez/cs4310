@@ -41,19 +41,19 @@ int main(int argc, char *argv[])
     {
         case 2:
             n = atoi(argv[1]);
-            srand((unsigned)time(NULL)); //seeds random w/ respect to time
+            srand((unsigned)time(NULL)); /* seeds random w/ respect to time */
             break;
         default:
             printf("**ERROR: Insufficient arguments **\n");
             printf("Usage: mpirun -np [# procs] ./matmul [matrix size]\n");
-            return 1; //exit program with error
+            return 1; /* exit program with error */
     }
     
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &p);
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
 
-    n = n>p ? n : p; //ensures at least 1 row per processor
+    n = n>p ? n : p; /* ensures at least 1 row per processor */
     breakPoints = calcBreakpoints(n, p);
 
     switch( id )
@@ -89,24 +89,24 @@ int main(int argc, char *argv[])
         }
     }
 
-    //Deallocate memory
+    /* Deallocate memory */
     matrixA = free_matrix(matrixA);
     matrixB = free_matrix(matrixB);
     matrixC = free_matrix(matrixC);
-    breakPoints = free_array(breakPoints); //not a matrix
+    breakPoints = free_array(breakPoints);
 
     MPI_Finalize();
-    return 0; //exit program successfully
-} //end main
+    return 0; /* exit program successfully */
+} /* end main */
 
 int *calcBreakpoints(int n, int p)
 {
-    int i, *v; // *v is pointer to the vector
-    int remainder = n%p; //stores excess rows not evenly distributed
+    int i, *v; /* v is pointer to the vector */
+    int remainder = n%p; /* stores excess rows not evenly distributed */
 
     v = allocate_array(p+1);
 
-    //row bands are attempted to be distributed evenly
+    /* row bands are attempted to be distributed evenly */
     for(i = 1; i <= p; i++)
         v[i] += (v[i-1] + n/p);
 
@@ -118,12 +118,12 @@ int *calcBreakpoints(int n, int p)
         v[i] += remainder--;
 
     return (v);
-} //end calculate breakpoints
+} /* end calculate breakpoints */
 
 double *allocate_matrix(int n, int random)
 {
     int i;
-    double *v; // *v is pointer to the vector
+    double *v; /* v is pointer to the vector */
 
     v = (double*) malloc(n * sizeof(double));
 
@@ -141,16 +141,16 @@ double *allocate_matrix(int n, int random)
         case 1:
             for(i = 0; i < n; i++)
                 v[i] = 1.0;
-                //v[i] = (rand() % (MAXRAND - MINRAND + 1) + MINRAND)/100;
+                /* v[i] = (rand() % (MAXRAND - MINRAND + 1) + MINRAND)/100; */
             break;
     }
 
-    return (v); //returns pointer to the vector
-} //end allocate matrix
+    return (v); /* returns pointer to the vector */
+} /* end allocate matrix */
 
 int *allocate_array(int n)
 {
-    int i, *v; // *v is pointer to the vector
+    int i, *v; /* v is pointer to the vector */
 
     v = (int*) malloc(n * sizeof(int));
 
@@ -163,7 +163,7 @@ int *allocate_array(int n)
         v[i] = 0;
 
     return (v);
-}
+} /* end allocate array */
 
 double *free_matrix(double *v)
 {
@@ -173,8 +173,8 @@ double *free_matrix(double *v)
     free(v);
     v = NULL;
 
-    return (v); //returns a null pointer
-} //end free matrix
+    return (v); /* returns a null pointer */
+} /* end free matrix */
 
 int *free_array(int *v)
 {
@@ -184,8 +184,8 @@ int *free_array(int *v)
     free(v);
     v = NULL;
 
-    return (v); //returns a null pointer
-} //end free array
+    return (v); /* returns a null pointer */
+} /* end free array */
 
 void print_matrix(int n, double *v)
 {
@@ -197,7 +197,7 @@ void print_matrix(int n, double *v)
             printf("%5.2f", v[column]);
         printf("\n");
     }
-} //end print matrix
+} /* end print matrix */
 
 void print_array(int n, int *v)
 {
@@ -205,5 +205,5 @@ void print_array(int n, int *v)
     for(i = 0; i < n; i++)
         printf("%3d", v[i]);
     printf("\n");
-} //end print array
+} /* end print array */
 
