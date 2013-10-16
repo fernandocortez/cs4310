@@ -52,12 +52,6 @@ int main(int argc, char *argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &p);
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
 
-    if(p < 2) {
-        printf("Need more processors!\n");
-        MPI_Finalize();
-        return 2; /* exit program with error */
-    }
-
     n = n>p ? n : p; /* ensures at least 1 row per processor */
     breakPoints = calc_breakpoints(n, p);
 
@@ -71,15 +65,23 @@ int main(int argc, char *argv[])
             break;
         default:
             rows = breakPoints[id+1] - breakPoints[id];
+            matrixA = allocate_matrix(n * rows, -1, 'a');
             matrixC = allocate_matrix(n * rows, 0, 'c');
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    MPI_Bcast(matrixB, n*n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    distribute_rows(matrixA, breakPoints, n, p, id);
-    matmul(matrixA, matrixB, matrixC, breakPoints, n, id);
-    collect_rows(matrixC, breakPoints, n, p, id);
+    switch( p )
+    {
+        case 1:
+            matmul(matrixA, matrixB, matrixC, breakPoints, n, id);
+            break;
+        default:
+            MPI_Bcast(matrixB, n*n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            distribute_rows(matrixA, breakPoints, n, p, id);
+            matmul(matrixA, matrixB, matrixC, breakPoints, n, id);
+            collect_rows(matrixC, breakPoints, n, p, id);
+    }
 
     if(!id) {
         elapsed_time += MPI_Wtime();
@@ -119,9 +121,8 @@ void matmul(double *A, double *B, double *C, int *share, int n, int id)
     for(i = 0; i < rows; i++) {
         for(j = 0; j < n; j++) {
             temp = A[i*n + j];
-            for(k = 0; k < n; k++) {
+            for(k = 0; k < n; k++)
                 C[i*n + k] += temp * B[j*n + k];
-            }
         }
     }
 } /* end matrix multiplication */
