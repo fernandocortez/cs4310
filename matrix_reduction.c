@@ -69,10 +69,8 @@ int main(int argc, char *argv[])
         temp += matrix[breakPoints[i] * n];
     matrix[0] = temp;
 
-    if(n < 7) {
+    if(n < 7)
         print_matrix(matrix, n);
-        printf("Matrix sum: %10.2f\n", matrix[0]);
-    }
 
     /* Deallocate memory */
     matrix = free_matrix(matrix);
