@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-void matmul(double *A, double *B, double *C, int n, int thread_count);
+void *matmul(void *thread_count);
 double *allocate_matrix(int n, int random, char m);
 double *free_matrix(double *v);
 void print_matrix(double *v, int n, char m);
@@ -18,14 +18,20 @@ int *calc_breakpoints(int n, int threads);
 int *allocate_array(int n);
 int *free_array(int *v);
 
+#define MAXTHRDS 8
+
+/* GLOBAL MEMORY */
+double *matrixA;
+double *matrixB;
+double *matrixC;
+int n; /* dimensions of array */
+int thread_count; /* # of threads */
+
 int main(int argc, char *argv[])
 {
-    int n; /* dimensions of array */
+    long rank; /* looping variable */
     int array_size;
-    int threads; /* # of threads */
-    double *matrixA;
-    double *matrixB;
-    double *matrixC;
+    pthread_t *thread_handles;
 
     /* Check input arguments */
     switch( argc ) {
@@ -36,8 +42,8 @@ int main(int argc, char *argv[])
                 exit(1); /* exit program with error */
             }
 
-            threads = atoi(argv[2]);
-            if(threads < 1) {
+            thread_count = atoi(argv[2]);
+            if(thread_count < 1) {
                 printf("Thread count must be greater than 1\n");
                 exit(1); /* exit program with error */
             }
@@ -49,15 +55,24 @@ int main(int argc, char *argv[])
             exit(1); /* exit program with error */
     }
 
-    n = n>threads ? n : threads; /* ensures at least 1 row per thread */
+    thread_count = thread_count>MAXTHRDS ? thread_count : MAXTHRDS; /* caps # of threads spawned */
+    n = n>thread_count ? n : thread_count; /* ensures at least 1 row per thread */
     array_size = n * n;
 
     /* Matrix memory allocation */
     matrixA = allocate_matrix(array_size, 1, 'A');
     matrixB = allocate_matrix(array_size, 1, 'B');
     matrixC = allocate_matrix(array_size, 0, 'C');
+    thread_handles = malloc(thread_count * sizeof(pthread_t));
 
-    matmul(matrixA, matrixB, matrixC, n, threads);
+    for(rank = 0; rank < thread_count; rank++)
+        pthread_create(&thread_handles[rank], NULL, matmul, (void*) rank);
+
+    for(rank = 0; rank < thread_count; rank++)
+        pthread_join(thread_handles[rank], NULL);
+
+    free(thread_handles);
+    thread_handles = NULL;
 
     if(n < 7) {
         print_matrix(matrixA, n, 'A');
@@ -73,10 +88,35 @@ int main(int argc, char *argv[])
     exit(0); /* exit program successfully */
 }
 
-void matmul(double *A, double *B, double *C, int n, int thread_count)
+void *matmul(void *rank)
 {
+    int i, j, count;
+    double temp;
+    long my_rank = (long) rank;
+
     int *breakPoints = calc_breakpoints(n, thread_count);
+    int rowband_start = breakPoints[my_rank] * n;
+    int rowband_end = breakPoints[my_rank + 1] * n;
+    int startB, endB;
+
+    for(count = 0; count < thread_count; count++) {
+        startB = breakPoints[(my_rank + count) % thread_count] * n;
+        endB = breakPoints[(my_rank + count) % thread_count + 1] * n;
+
+        for(i = rowband_start; i < rowband_end; i++) {
+            temp = matrixC[i];
+
+            for(j = startB; j < endB; j++) {
+                temp += matrixA[j] + matrixB[j];
+            }
+
+            matrixC[i] = temp;
+        }
+    }
+
     free_array(breakPoints);
+
+    return NULL;
 }
 
 double *allocate_matrix(int n, int random, char m)
