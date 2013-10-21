@@ -1,0 +1,26 @@
+All these timings were taken on a Quad-Core AMD Opteron Processor 2376 with the
+matmul_pthreads.c program using the time utility on CentOS 6.2
+
+Threads = 1
+    n = 256     time = 0.192 sec
+    n = 512     time = 1.361 sec
+    n = 1024    time = 10.871 sec
+    n = 2048    time = 86.702 sec
+
+Threads = 2
+    n = 256     time = 0.149 sec
+    n = 512     time = 0.725 sec
+    n = 1024    time = 5.554 sec
+    n = 2048    time = 44.226 sec
+
+Threads = 4
+    n = 256     time = 0.071 sec
+    n = 512     time = 0.375 sec
+    n = 1024    time = 2.805 sec
+    n = 2048    time = 22.314 sec
+
+Threads = 8
+    n = 256     time = 0.065 sec
+    n = 512     time = 0.301 sec
+    n = 1024    time = 1.794 sec
+    n = 2048    time = 14.661 sec

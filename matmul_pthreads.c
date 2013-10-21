@@ -24,7 +24,8 @@ int *free_array(int *v);
 double *matrixA;
 double *matrixB;
 double *matrixC;
-int n; /* dimensions of array */
+int *breakPoints;
+int n; /* dimensions of matrix */
 int thread_count; /* # of threads */
 
 int main(int argc, char *argv[])
@@ -55,7 +56,7 @@ int main(int argc, char *argv[])
             exit(1); /* exit program with error */
     }
 
-    thread_count = thread_count>MAXTHRDS ? thread_count : MAXTHRDS; /* caps # of threads spawned */
+    thread_count = thread_count<MAXTHRDS ? thread_count : MAXTHRDS; /* caps # of threads spawned */
     n = n>thread_count ? n : thread_count; /* ensures at least 1 row per thread */
     array_size = n * n;
 
@@ -63,6 +64,7 @@ int main(int argc, char *argv[])
     matrixA = allocate_matrix(array_size, 1, 'A');
     matrixB = allocate_matrix(array_size, 1, 'B');
     matrixC = allocate_matrix(array_size, 0, 'C');
+    breakPoints = calc_breakpoints(n, thread_count);
     thread_handles = malloc(thread_count * sizeof(pthread_t));
 
     for(rank = 0; rank < thread_count; rank++)
@@ -84,37 +86,33 @@ int main(int argc, char *argv[])
     matrixA = free_matrix(matrixA);
     matrixB = free_matrix(matrixB);
     matrixC = free_matrix(matrixC);
+    breakPoints = free_array(breakPoints);
 
     exit(0); /* exit program successfully */
 }
 
 void *matmul(void *rank)
 {
-    int i, j, count;
+    int i, j, k, count;
     double temp;
     long my_rank = (long) rank;
 
-    int *breakPoints = calc_breakpoints(n, thread_count);
-    int rowband_start = breakPoints[my_rank] * n;
-    int rowband_end = breakPoints[my_rank + 1] * n;
+    int rowband_start = breakPoints[my_rank];
+    int rowband_end = breakPoints[my_rank + 1];
     int startB, endB;
 
     for(count = 0; count < thread_count; count++) {
-        startB = breakPoints[(my_rank + count) % thread_count] * n;
-        endB = breakPoints[(my_rank + count) % thread_count + 1] * n;
+        startB = breakPoints[(my_rank + count) % thread_count];
+        endB = breakPoints[(my_rank + count) % thread_count + 1];
 
         for(i = rowband_start; i < rowband_end; i++) {
-            temp = matrixC[i];
-
             for(j = startB; j < endB; j++) {
-                temp += matrixA[j] + matrixB[j];
+                temp = matrixA[i*n + j];
+                for(k = 0; k < n; k++)
+                    matrixC[i*n + k] += temp * matrixB[j*n + k];
             }
-
-            matrixC[i] = temp;
         }
     }
-
-    free_array(breakPoints);
 
     return NULL;
 }
