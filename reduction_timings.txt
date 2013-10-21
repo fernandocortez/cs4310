@@ -1,0 +1,30 @@
+All these timings were taken on a Quad-Core AMD Opteron Processor 2376 with
+the matrix_reduction.c program using the time utility on CentOS 6.2
+
+Threads = 1
+    n = 256     time = 0.008 sec
+    n = 512     time = 0.024 sec
+    n = 1024    time = 0.046 sec
+    n = 2048    time = 0.080 sec
+    n = 4096    time = 0.330 sec
+
+Threads = 2
+    n = 256     time = 0.013 sec
+    n = 512     time = 0.015 sec
+    n = 1024    time = 0.031 sec
+    n = 2048    time = 0.102 sec
+    n = 4096    time = 0.236 sec
+
+Threads = 4
+    n = 256     time = 0.012 sec
+    n = 512     time = 0.014 sec
+    n = 1024    time = 0.027 sec
+    n = 2048    time = 0.070 sec
+    n = 4096    time = 0.234 sec
+
+Threads = 8
+    n = 256     time = 0.007 sec
+    n = 512     time = 0.014 sec
+    n = 1024    time = 0.029 sec
+    n = 2048    time = 0.085 sec
+    n = 4096    time = 0.184 sec
