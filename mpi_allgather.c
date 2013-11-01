@@ -7,6 +7,10 @@
  * what this does is every process ends up having then entire array of
  * size n = m*p, where p is the number of processors.
  *
+ * The implementation ended up having each process passing around the
+ * entire array, filling in the blanks as it gets a new array from its
+ * partner process.
+ *
  * mpicc -g -Wall -ansi -lm -o gather mpi_allgather.c
  */
 
