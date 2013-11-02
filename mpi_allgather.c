@@ -61,6 +61,16 @@ int main(int argc, char *argv[])
     total_array = allocate_array(n, id, m);
     msg = allocate_array(n, -1, -1);
 
+    if(m < 4)
+        for(i = 0; i < p; i++) {
+            MPI_Barrier(MPI_COMM_WORLD);
+            if(id == i) {
+                printf("This is process %d\n", id);
+                print_array(total_array, n);
+                printf("\n");
+            }
+        }
+
     for(counter = pow(2, dim-1); counter > 0; counter /= 2) {
         partner = counter ^ id;
 
