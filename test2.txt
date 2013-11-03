@@ -1,0 +1,17 @@
+i) Write a MPI program for all-to-all gather in log(p) steps using hypercube communication pattern.
+
+(ii) Convert this into a mergesort program, where all the processes have sorted list available at the end.
+
+(iii) Calculate T_p, S_p, E_p, cost, range of cost optimality and iso-efficiency function, for mergesort algorithm.
+
+Assume sequential time is O(nlogn + np), O(nlogn) for mergesort and O(np) for creating p copies of sorted array of total size n = mp. 
+
+Notes:
+
+1. Input is hypercube dimension d and the local array size m.  Populate arrays locally.  Thus, p = 2^d.
+
+2. Use a for loop with d iterations of exchanges, starting with highest dim neighbors.
+
+3. You may use a third party mergesort code from elsewhere but cite.
+
+4. No collaboration with anyone.  Direct any question to me.
