@@ -21,6 +21,7 @@
 #include <math.h>
 #include <time.h>
 
+void mpi_merge(int *list, int *right, int end);
 void merge(int *list, int left_start, int left_end, int right_start, int right_end);
 void mergesort_iter(int left, int right, int *list);
 void mergesort(int *list, int length);
@@ -40,6 +41,8 @@ int main(int argc, char *argv[])
     int dim; /* dimension of hypercube */
 
     int i, counter; /* loop variable */
+    int max_counter;
+    int msg_size;
     int partner;
 
     int *local_array;
@@ -80,20 +83,23 @@ int main(int argc, char *argv[])
             }
         }
 
-    for(counter = pow(2, dim-1); counter > 0; counter /= 2) {
+    for(i = 0; i < m; i++)
+        total_array[i] = local_array[i];
+
+    max_counter = pow(2, dim);
+    for(counter = 1; counter < max_counter; counter *= 2) {
         partner = counter ^ id;
+        msg_size = m * counter;
 
         if(id > partner) {
-            MPI_Send(total_array, n, MPI_INT, partner, id, MPI_COMM_WORLD);
-            MPI_Recv(msg, n, MPI_INT, partner, partner, MPI_COMM_WORLD, &status);
+            MPI_Send(total_array, msg_size, MPI_INT, partner, id, MPI_COMM_WORLD);
+            MPI_Recv(msg, msg_size, MPI_INT, partner, partner, MPI_COMM_WORLD, &status);
         } else {
-            MPI_Recv(msg, n, MPI_INT, partner, partner, MPI_COMM_WORLD, &status);
-            MPI_Send(total_array, n, MPI_INT, partner, id, MPI_COMM_WORLD);
+            MPI_Recv(msg, msg_size, MPI_INT, partner, partner, MPI_COMM_WORLD, &status);
+            MPI_Send(total_array, msg_size, MPI_INT, partner, id, MPI_COMM_WORLD);
         }
 
-        for(i = 0; i < n; i++)
-            if(msg[i]) /* test if value of array is not 0 */
-                total_array[i] = msg[i];
+        mpi_merge(total_array, msg, msg_size);
     }
 
     /* Print tests */
@@ -115,6 +121,32 @@ int main(int argc, char *argv[])
     MPI_Finalize();
     exit(0); /* exit program successfully */
 } /* end main */
+
+void mpi_merge(int *list, int *right, int end)
+{
+    int left[end];
+    int i = 0; /* list index */
+    int l = 0; /* left index */
+    int r = 0; /* right index */
+
+    for(i = 0; i < end; i++)
+        left[i] = list[i];
+
+    /* merge left and right back onto list */
+    for(i = 0; l < end && r < end; i++) {
+        if( left[l] < right[r] ) {
+            list[i] = left[l++];
+        } else {
+            list[i] = right[r++];
+        }
+    }
+
+    /* Copy over leftovers of whichever temporary list hasn't finished */
+    for( ; l < end; i++, l++)
+        list[i] = left[l];
+    for( ; r < end; i++, r++)
+        list[i] = right[r];
+}
 
 void merge(int *list, int left_start, int left_end, int right_start, int right_end)
 {
@@ -140,7 +172,7 @@ void merge(int *list, int left_start, int left_end, int right_start, int right_e
     
     /* merge left_half and right_half back into list */
     for(i = left_start, r = 0, l = 0; l < left_length && r < right_length; i++){
-        if( left_half[l] < right_half[r] ) { list[i] = left_half[l]; }
+        if( left_half[l] < right_half[r] ) { list[i] = left_half[l++]; }
         else { list[i] = right_half[r++]; }
     }
 
