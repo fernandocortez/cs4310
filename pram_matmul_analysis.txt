@@ -1,0 +1,27 @@
+Fernando Cortez
+18 November 2013
+
+PURPOSE: Develop an algorithm based on PRAM model to multiply two nxn
+matrices using p processors for 1 <= p <= n^3. Calculate T_p, S_p, cost,
+work, E_p expression and find the range of optimality.
+
+The algorithm I am proposing uses n^2 processors, one for each element of
+the resulting matrix. This is a precursor to analyzing the algorithm for
+use on a GPU since the creation of threads is very minimal.
+
+T_1* (sequential time) = O(n^3)
+T_p = T_1*/p = O(n^3/n^2) = O(n)
+S_p = T_1*/T_p = O(n^3/n) = O(n^2)
+E_p = S_p/p = O(n^2/n^2) = O(1)
+cost = p * T_p = O(n^2 * n) = O(n^3)
+
+Range of Optimality:
+    1 <= p <= O(n^2)
+
+Matrix multiplication is a problem that is known to have a large running
+time. By creating a process for each element of the resulting matrix, the
+running time has been reduced to linear time. Also, launching such a large
+amount of processes results in a large speedup, with the efficiency of the
+algorithm scaling well as the size of input increases. The only downside is
+that the cost of running so many processes is very large; this cost isn't
+much of a problem when utilizing a GPU.
