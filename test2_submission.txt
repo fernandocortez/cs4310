@@ -1,0 +1,17 @@
+Fernando Cortez
+4 November 2013
+Parallel Exam 2
+
+T_1* (sequential time) = O(n log n + np)
+T_p = T_1*/p = O(n/p log n + n) = O(n/p log n)
+S_p = T_1*/T_p = O(p + p^2 / log n) = O(p^2 / log n)
+E_p = S_p / p = O(p / log n)
+cost = p * T_p = O(n log n)
+
+Range of Optimality:
+    1 <= p <= O(n log n)
+
+Iso-efficiency function:
+    W = k * T_O
+    W = k * (p * T_p - T_1*)
+    
