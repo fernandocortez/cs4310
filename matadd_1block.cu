@@ -6,45 +6,44 @@
 #include <stdio.h>
 #include "util.h"
 
-__global__ void matrixAdd(int *A, int *B, int *C, int size)
+__global__ void matrixAdd(int *A, int *B, int *C, size_t size)
 {
-    int tx = threadIdx.x;
-    int ty = threadIdx.y;
-    int i;
+    size_t tx = threadIdx.x;
+    size_t ty = threadIdx.y;
+    size_t coordinate = ty * size + tx;
     int temp;
 
-    for(i = 0; i < size; i++) {
-        temp = A[ty*size + i] + B[i*size + tx];
-    }
-
-    C[ty*size + tx] = temp;
+    temp = A[coordinate] + B[coordinate];
+    C[coordinate] = temp;
 }
 
 int main(int argc, char *argv[])
 {
-    int i, j;
-    int *matrixA;
-    int *matrixB;
-    int *matrixC;
-    int *data;
-    int size, total_size;
+    size_t i, j;
+    int *matrixA = NULL;
+    int *matrixB = NULL;
+    int *matrixC = NULL;
+    int *data = NULL;
+    size_t size, total_size;
+    int memory_size;
 
     if(argc != 2) {
         printf("format:%s [size of matrix]\n", argv[0]);
         exit(1);
     }
 
-    size = atoi(argv[1]);
+    size = (unsigned) atoi(argv[1]);
     total_size = size * size;
+    memory_size = total_size * sizeof(int);
 
     /* allocate host memory */
-    data = (int*) malloc(total_size * sizeof(int));
+    data = (int*) malloc(memory_size);
 
     /* allocate device memory */
-    (cudaMalloc ((void**) &matrixA, sizeof(int) * total_size));
-    (cudaMalloc ((void**) &matrixB, sizeof(int) * total_size));
-    (cudaMalloc ((void**) &matrixC, sizeof(int) * total_size));
-    checkError("Memory allocation");
+    (cudaMalloc( (void**) &matrixA, memory_size));
+    (cudaMalloc( (void**) &matrixB, memory_size));
+    (cudaMalloc( (void**) &matrixC, memory_size));
+    checkErrors("Memory allocation\n");
 
     for(i = 0; i < total_size; i++)
         data[i] = 1; /* (int) (10 * rand()/32768.f); */
@@ -58,9 +57,9 @@ int main(int argc, char *argv[])
     }
 
     /* copy data from host memory to device memory */
-    (cudaMemcpy( matrixA, data, sizeof(int)*total_size, cudaMemcpyHostToDevice ));
-    (cudaMemcpy( matrixB, data, sizeof(int)*total_size, cudaMemcpyHostToDevice ));
-    checkErrors("Memory copy 1");
+    (cudaMemcpy( matrixA, data, memory_size, cudaMemcpyHostToDevice ));
+    (cudaMemcpy( matrixB, data, memory_size, cudaMemcpyHostToDevice ));
+    checkErrors("Memory copy 1\n");
 
     dim3 dimBlock(size, size);
     dim3 dimGrid(1, 1);
@@ -72,7 +71,7 @@ int main(int argc, char *argv[])
     cudaEventRecord(start_event, 0);
 
     /* call kernel (global function) */
-    matrixAdd<<dimGrid, dimBlock>>(matrixA, matrixB, matrixC, size);
+    matrixAdd<<<dimGrid, dimBlock>>>(matrixA, matrixB, matrixC, size);
     cudaThreadSynchronize();
 
     cudaEventRecord(stop_event, 0);
@@ -82,8 +81,8 @@ int main(int argc, char *argv[])
     printf("Total time %f\n", time_kernel);
 
     /* copy data from device memory to host memory */
-    (cudaMemcpy( data, matrixC, sizeof(int)*total_size, cudaMemcpyDeviceToHost ));
-    checkErrors("Memory copy 2");
+    (cudaMemcpy( data, matrixC, memory_size, cudaMemcpyDeviceToHost ));
+    checkErrors("Memory copy 2\n");
 
     if(size < 6) {
         for(i = 0; i < size; i++) {
