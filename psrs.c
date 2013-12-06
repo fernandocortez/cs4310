@@ -97,25 +97,28 @@ int main(int argc, char *argv[])
 
 void psrs(int *v, int *s, size_t p, size_t id, size_t *m)
 {
-    size_t i, sample_size = p-1;
-    int **sample_ptr = (int**) malloc(sample_size * sizeof(int*));
+    size_t i;
+    size_t sample_size = p-1;
+    size_t ptr_count = p+1;
+    int **sample_ptr = (int**) malloc(ptr_count * sizeof(int*));
     int temp;
 
-    for(i = 0; i < sample_size; i++)
-        sample_ptr[i] = v;
+    for(i = 0; i < ptr_count; i++)
+        sample_ptr[i] = v; /* all pointers point to first element of array */
+    sample_ptr[p] = &v[m-1]; /* last pointer at last element of array */
     for(i = 1; i < sample_size; i++) {
         temp = s[i];
         while(*sample_ptr[i]++ < temp);
     }
+    *m = sample_ptr[id+1] - sample_ptr[id];
     for(i = 0; i < p; i++) {
         if(id == i) {
-            i
         } else {
         }
     }
 
     /* Deallocate memory */
-    for(i = 0; i < sample_size; i++)
+    for(i = 0; i < ptr_count; i++)
         sample_ptr[i] = NULL;
     free(sample_ptr);
     sample_ptr = NULL;
