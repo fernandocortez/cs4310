@@ -67,7 +67,6 @@ int main(int argc, char *argv[])
         for(i = 0; i < p; i++) {
             MPI_Barrier(MPI_COMM_WORLD);
             if(id == i) {
-                print_array(samples, p-1, 's');
                 printf("This is process %d local array\n", id);
                 print_array(local_array, m, (char) i);
                 printf("\n");
@@ -75,13 +74,14 @@ int main(int argc, char *argv[])
         }
 
     swap_samples(local_array, samples, (size_t) p, (size_t) id, m);
-    //psrs(local_array, samples, (size_t) p, (size_t) id, &m);
+    psrs(local_array, samples, (size_t) p, (size_t) id, &m);
     qsort(local_array, m, sizeof(int), intcmp);
 
     /* Test printing */
     for(i = 0; i < p; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
         if(id == i && m < 10) {
+            print_array(samples, p-1, 's');
             printf("This is process %d local array\n", id);
             print_array(local_array, m, (char) id);
             printf("\n");
@@ -145,11 +145,12 @@ void swap_samples(int *v, int *s, size_t p, size_t id, size_t m)
     if(!id) {
         qsort(s, p * sample_size, sizeof(int), intcmp);
         /* isolates samples all processors will use */
-        msg = allocate_array(sample_size, 0, 'm');
+        msg = allocate_array(sample_size, -1, 'm');
         for(i = 1; i < p; i++)
             msg[i-1] = s[i * sample_size];
-        s = free_array(s);
-        s = msg;
+        s = (int*) realloc(s, sample_size);
+        for(i = 0; i < sample_size; i++)
+            s[i] = msg[i];
         msg = free_array(msg);
     }
 
