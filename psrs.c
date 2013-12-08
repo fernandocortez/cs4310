@@ -9,7 +9,7 @@
 #include <math.h>
 #include <time.h>
 
-void psrs(int *, int *, size_t, size_t, size_t *);
+size_t psrs(int *, int *, size_t, size_t, size_t);
 void swap_samples(int *, int *, size_t, size_t, size_t);
 int intcmp(const void *, const void *);
 int *allocate_array(size_t, int, char);
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
         }
 
     swap_samples(local_array, samples, (size_t) p, (size_t) id, m);
-    psrs(local_array, samples, (size_t) p, (size_t) id, &m);
+    m = psrs(local_array, samples, (size_t) p, (size_t) id, m);
     qsort(local_array, m, sizeof(int), intcmp);
 
     /* Test printing */
@@ -96,38 +96,70 @@ int main(int argc, char *argv[])
     exit(0); /* exit program successfully */
 } /* end main */
 
-void psrs(int *v, int *s, size_t p, size_t id, size_t *m)
+size_t psrs(int *v, int *s, size_t p, size_t id, size_t m)
 {
-    size_t i, n = *m * p;
-    size_t sample_size = p-1;
+    size_t i, j, k;
     size_t ptr_count = p+1;
     int *sample_ptr[ptr_count];
-    int inc_msg[sample_size][n];
-    int out_msg[sample_size][n];
-    size_t inc_msg_size[sample_size];
-    size_t out_msg_size[sample_size];
+    int inc_msg[p][m];
+    int out_msg[p][m];
+    int *inc_msg_size = allocate_array(p, 0, 'i');
+    int *out_msg_size = allocate_array(p, 0, 'o');
     int temp;
-    int source;
-    int dest;
     MPI_Status status;
 
     for(i = 0; i < p; i++)
         sample_ptr[i] = v; /* all pointers point to first element of array */
-    sample_ptr[p] = &v[*m-1]; /* last pointer at last element of array */
+    sample_ptr[p] = &v[m-1]; /* last pointer at last element of array */
     for(i = 1; i < p; i++) {
-        temp = s[i];
-        while(*sample_ptr[i]++ < temp);
+        temp = s[i-1];
+        while(*sample_ptr[i] < temp)
+            sample_ptr[i]++;
     }
 
-    *m = sample_ptr[id+1] - sample_ptr[id];
+    for(i = 0; i < p; i++) {
+        j = 0;
+        if(id == i) {
+            while(sample_ptr[i] < sample_ptr[i+1])
+                inc_msg[i][j++] = *sample_ptr[i]++;
+            inc_msg_size[i] = j;
+        } else {
+            while(sample_ptr[i] < sample_ptr[i+1])
+                out_msg[i][j++] = *sample_ptr[i]++;
+            out_msg_size[i] = j;
+        }
+    }
+
     for(i = 0; i < p; i++) {
         if(id == i) {
+            for(j = 0; j < p; j++)
+                if(id != j) {
+                    MPI_Recv(&inc_msg_size[j], 1, MPI_INT, j, j, MPI_COMM_WORLD, &status);
+                    MPI_Recv(inc_msg[j], inc_msg_size[j], MPI_INT, j, j, MPI_COMM_WORLD, &status);
+                }
         } else {
+            MPI_Send(&out_msg_size[i], 1, MPI_INT, i, id, MPI_COMM_WORLD);
+            MPI_Send(out_msg[i], out_msg_size[i], MPI_INT, i, id, MPI_COMM_WORLD);
         }
+    }
+
+    m = 0;
+    for(i = 0; i < p; i++)
+        m += inc_msg_size[i];
+    v = (int*) realloc(v, m);
+    k = 0;
+    for(i = 0; i < p; i++) {
+        temp = inc_msg_size[i];
+        for(j = 0; j < temp; j++)
+            v[k++] = inc_msg[i][j];
     }
 
     for(i = 0; i < ptr_count; i++)
         sample_ptr[i] = NULL;
+    inc_msg_size = free_array(inc_msg_size);
+    out_msg_size = free_array(out_msg_size);
+
+    return m;
 } /* end parallel sorting by sampling */
 
 void swap_samples(int *v, int *s, size_t p, size_t id, size_t m)
