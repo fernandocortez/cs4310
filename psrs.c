@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
     m = psrs(local_array, samples, (size_t) p, (size_t) id, m);
     qsort(local_array, m, sizeof(int), intcmp);
 
+    printf("-------\n");
     /* Test printing */
     for(i = 0; i < p; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
@@ -99,8 +100,8 @@ int main(int argc, char *argv[])
 size_t psrs(int *v, int *s, size_t p, size_t id, size_t m)
 {
     size_t i, j, k;
-    size_t ptr_count = p+1;
-    int *sample_ptr[ptr_count];
+    size_t sample_size = p-1;
+    int *v_ptr, *v_end = &v[m-1];
     int inc_msg[p][m];
     int out_msg[p][m];
     int *inc_msg_size = allocate_array(p, 0, 'i');
@@ -108,26 +109,30 @@ size_t psrs(int *v, int *s, size_t p, size_t id, size_t m)
     int temp;
     MPI_Status status;
 
-    for(i = 0; i < p; i++)
-        sample_ptr[i] = v; /* all pointers point to first element of array */
-    sample_ptr[p] = &v[m-1]; /* last pointer at last element of array */
-    for(i = 1; i < p; i++) {
-        temp = s[i-1];
-        while(*sample_ptr[i] < temp)
-            sample_ptr[i]++;
-    }
-
-    for(i = 0; i < p; i++) {
+    v_ptr = v;
+    for(i = 0; i < sample_size; i++) {
         j = 0;
+        temp = s[i];
         if(id == i) {
-            while(sample_ptr[i] < sample_ptr[i+1])
-                inc_msg[i][j++] = *sample_ptr[i]++;
+            while(*v_ptr < temp)
+                inc_msg[i][j++] = *v_ptr++;
             inc_msg_size[i] = j;
         } else {
-            while(sample_ptr[i] < sample_ptr[i+1])
-                out_msg[i][j++] = *sample_ptr[i]++;
+            while(*v_ptr < temp && v_ptr <= v_end)
+                out_msg[i][j++] = *v_ptr++;
             out_msg_size[i] = j;
         }
+    }
+
+    j = 0;
+    if(id == i) {
+        while(v_ptr <= v_end)
+            inc_msg[i][j++] = *v_ptr++;
+        inc_msg_size[i] = j;
+    } else {
+        while(v_ptr <= v_end)
+            out_msg[i][j++] = *v_ptr++;
+        out_msg_size[i] = j;
     }
 
     for(i = 0; i < p; i++) {
@@ -154,8 +159,6 @@ size_t psrs(int *v, int *s, size_t p, size_t id, size_t m)
             v[k++] = inc_msg[i][j];
     }
 
-    for(i = 0; i < ptr_count; i++)
-        sample_ptr[i] = NULL;
     inc_msg_size = free_array(inc_msg_size);
     out_msg_size = free_array(out_msg_size);
 
